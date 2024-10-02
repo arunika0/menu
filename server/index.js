@@ -4,15 +4,20 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000', // Pastikan ini sesuai dengan frontend Anda
+  optionsSuccessStatus: 200
+}));
 app.use(express.json());
 
-// Konfigurasi koneksi MySQL
+// Konfigurasi koneksi MySQL dengan decimalNumbers: true
 const dbConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -27,9 +32,61 @@ const dbConfig = {
 // Buat pool koneksi
 const pool = mysql.createPool(dbConfig);
 
+// Middleware untuk memverifikasi JWT
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) return res.status(401).json({ message: 'Access Token Required' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid Access Token' });
+    req.user = user;
+    next();
+  });
+};
+
+// Rute Login
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  console.log(`Login attempt: Username = ${username}, Password = ${password}`); // Log attempt
+
+  try {
+    const [rows] = await pool.execute('SELECT * FROM users WHERE username = ?', [username]);
+    console.log(`User found: ${rows.length} users`);
+    if (rows.length === 0) {
+      console.log('No user found with that username.');
+      return res.status(400).json({ message: 'Invalid Credentials' });
+    }
+
+    const user = rows[0];
+    console.log(`User retrieved: ${user.username}`);
+
+    // Verifikasi password
+    const validPassword = await bcrypt.compare(password, user.password);
+    console.log(`Password valid: ${validPassword}`);
+
+    if (!validPassword) {
+      console.log('Invalid password.');
+      return res.status(400).json({ message: 'Invalid Credentials' });
+    }
+
+    // Buat JWT
+    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
+      expiresIn: '1h' // Token berlaku selama 1 jam
+    });
+    console.log(`JWT Token created: ${token}`);
+
+    res.json({ token });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Endpoint CRUD
 
-// READ - Dapatkan semua menu items
+// READ - Dapatkan semua menu items (Publik)
 app.get('/api/menu', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM menu_items');
@@ -40,10 +97,10 @@ app.get('/api/menu', async (req, res) => {
   }
 });
 
-// CREATE - Tambah menu item baru
-app.post('/api/menu', async (req, res) => {
+// CREATE - Tambah menu item baru (Autentikasi)
+app.post('/api/menu', authenticateToken, async (req, res) => {
   const { name, price, description, image, category } = req.body;
-  
+
   // Validasi sederhana
   if (!name || !price || !category) {
     return res.status(400).json({ message: 'Name, price, and category are required.' });
@@ -62,8 +119,8 @@ app.post('/api/menu', async (req, res) => {
   }
 });
 
-// UPDATE - Edit menu item berdasarkan ID
-app.put('/api/menu/:id', async (req, res) => {
+// UPDATE - Edit menu item berdasarkan ID (Autentikasi)
+app.put('/api/menu/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
   const { name, price, description, image, category } = req.body;
 
@@ -90,10 +147,10 @@ app.put('/api/menu/:id', async (req, res) => {
   }
 });
 
-// DELETE - Hapus menu item berdasarkan ID
-app.delete('/api/menu/:id', async (req, res) => {
+// DELETE - Hapus menu item berdasarkan ID (Autentikasi)
+app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
-  
+
   try {
     const [result] = await pool.query('DELETE FROM menu_items WHERE id = ?', [id]);
 

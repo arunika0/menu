@@ -4,6 +4,9 @@
   <div class="container mt-5">
     <h2 class="text-center mb-4">Admin Menu Management</h2>
 
+    <!-- Logout Button -->
+    <button class="btn btn-danger mb-3" @click="logout">Logout</button>
+
     <!-- Form untuk tambah/edit item menu -->
     <div class="card p-4 mb-4">
       <h5>{{ editingItem ? 'Edit Menu Item' : 'Add New Menu Item' }}</h5>
@@ -109,6 +112,7 @@
 
 <script>
 export default {
+  middleware: 'auth', // Terapkan middleware auth
   data() {
     return {
       menuItems: [],
@@ -176,6 +180,16 @@ export default {
         category: 'breakfast'
       };
       this.editingItem = null;
+    },
+    logout() {
+      // Hapus token dari localStorage
+      localStorage.removeItem('token');
+
+      // Reset token di Axios
+      this.$axios.setToken(false);
+
+      // Redirect ke halaman login
+      this.$router.push('/login');
     }
   },
   mounted() {

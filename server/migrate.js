@@ -2,6 +2,7 @@
 
 require('dotenv').config();
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 // Konfigurasi koneksi MySQL
 const dbConfig = {
@@ -11,23 +12,12 @@ const dbConfig = {
   database: process.env.DB_NAME
 };
 
-// Data menu awal
-const menuItems = [
+// Data pengguna awal
+const users = [
   {
-    name: 'Buttermilk Pancakes',
-    price: 15.99,
-    description: 'Delicious pancakes with syrup and fresh strawberries.',
-    image: 'https://via.placeholder.com/150',
-    category: 'breakfast'
-  },
-  {
-    name: 'Godzilla Milkshake',
-    price: 6.99,
-    description: 'A huge milkshake topped with donuts and whipped cream.',
-    image: 'https://via.placeholder.com/150',
-    category: 'shakes'
-  },
-  // ...item lainnya
+    username: 'admin',
+    password: 'password' // Password akan di-hash sebelum disimpan
+  }
 ];
 
 async function migrate() {
@@ -36,12 +26,15 @@ async function migrate() {
     connection = await mysql.createConnection(dbConfig);
     console.log('Connected to MySQL database.');
 
-    for (const item of menuItems) {
-      const [result] = await connection.execute(
-        'INSERT INTO menu_items (name, price, description, image, category) VALUES (?, ?, ?, ?, ?)',
-        [item.name, item.price, item.description, item.image, item.category]
+    // Migrasi users
+    for (const user of users) {
+      // Hash password sebelum disimpan
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      await connection.execute(
+        'INSERT INTO users (username, password) VALUES (?, ?)',
+        [user.username, hashedPassword]
       );
-      console.log(`Inserted menu item with ID: ${result.insertId}`);
+      console.log(`Inserted user: ${user.username}`);
     }
 
     console.log('Data migrasi berhasil!');
