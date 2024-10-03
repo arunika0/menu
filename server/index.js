@@ -12,7 +12,7 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Pastikan ini sesuai dengan frontend Anda
+  origin: 'http://127.0.0.1:3000', // Pastikan ini sesuai dengan frontend Anda
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
@@ -185,5 +185,5 @@ app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
 
 // Mulai server
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running at http://127.0.0.1:${port}`);
 });
