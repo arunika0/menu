@@ -97,6 +97,24 @@ app.get('/api/menu', async (req, res) => {
   }
 });
 
+// GET - Dapatkan satu item menu berdasarkan ID
+app.get('/api/menu/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const [rows] = await pool.query('SELECT * FROM menu_items WHERE id = ?', [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Menu item not found' });
+    }
+
+    res.json(rows[0]); // Mengirimkan item menu yang ditemukan
+  } catch (error) {
+    console.error('Error fetching menu item:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
 // CREATE - Tambah menu item baru (Autentikasi)
 app.post('/api/menu', authenticateToken, async (req, res) => {
   const { name, price, description, image, category } = req.body;
