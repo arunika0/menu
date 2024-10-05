@@ -1,15 +1,13 @@
-<!-- pages/index.vue -->
-
 <template>
   <div class="container mt-5">
     <h2 class="text-center mb-4">Our Menu</h2>
 
     <!-- Filter Buttons -->
     <div class="text-center mb-4">
-      <button class="btn btn-outline-primary" @click="filterMenu('all')">All</button>
-      <button class="btn btn-outline-primary" @click="filterMenu('breakfast')">Breakfast</button>
-      <button class="btn btn-outline-primary" @click="filterMenu('lunch')">Lunch</button>
-      <button class="btn btn-outline-primary" @click="filterMenu('shakes')">Shakes</button>
+      <button class="btn btn-outline-primary mr-2" :class="{ active: selectedCategory === 'all' }" @click="filterMenu('all')">All</button>
+      <button v-for="category in categories" :key="category.id" class="btn btn-outline-primary mr-2" :class="{ active: selectedCategory === category.id }" @click="filterMenu(category.id)">
+        {{ category.name }}
+      </button>
     </div>
 
     <!-- Menu Items -->
@@ -20,9 +18,10 @@
           <div class="card-body">
             <h5 class="card-title">
               {{ item.name }}
-              <span class="float-right">Rp{{ item.price.toFixed(2) }}</span>
+              <span class="float-right">Rp{{ parseFloat(item.price).toFixed(2) }}</span>
             </h5>
             <p class="card-text">{{ item.description }}</p>
+            <p class="card-text"><small class="text-muted">Category: {{ item.category_name }}</small></p>
           </div>
         </div>
       </div>
@@ -35,7 +34,9 @@ export default {
   data() {
     return {
       menuItems: [],
-      filteredMenu: []
+      filteredMenu: [],
+      categories: [],
+      selectedCategory: 'all'
     };
   },
   methods: {
@@ -43,21 +44,31 @@ export default {
       try {
         const response = await this.$axios.get('/menu');
         this.menuItems = response.data;
-        this.filteredMenu = response.data;
+        this.filteredMenu = this.menuItems;
       } catch (error) {
         console.error('Error fetching menu:', error);
       }
     },
-    filterMenu(category) {
-      if (category === 'all') {
+    async fetchCategories() {
+      try {
+        const response = await this.$axios.get('/categories');
+        this.categories = response.data;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    },
+    filterMenu(categoryId) {
+      this.selectedCategory = categoryId;
+      if (categoryId === 'all') {
         this.filteredMenu = this.menuItems;
       } else {
-        this.filteredMenu = this.menuItems.filter(item => item.category === category);
+        this.filteredMenu = this.menuItems.filter(item => item.category_id === categoryId);
       }
     }
   },
   mounted() {
     this.fetchMenu();
+    this.fetchCategories();
   }
 };
 </script>
@@ -71,5 +82,10 @@ export default {
 .card-img-top {
   height: 200px;
   object-fit: cover;
+}
+
+.btn.active {
+  background-color: #007bff;
+  color: white;
 }
 </style>

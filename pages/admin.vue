@@ -1,11 +1,11 @@
-<!-- pages/admin.vue -->
-
 <template>
   <div class="container mt-5">
     <h2 class="text-center mb-4">Admin Menu Management</h2>
 
-    <!-- Logout Button -->
-    <button class="btn btn-danger mb-3" @click="logout">Logout</button>
+    <!-- Tombol Logout -->
+    <div class="text-right mb-3">
+      <button class="btn btn-danger" @click="logout">Logout</button>
+    </div>
 
     <!-- Form untuk tambah/edit item menu -->
     <div class="card p-4 mb-4">
@@ -50,10 +50,11 @@
         </div>
         <div class="form-group">
           <label>Category</label>
-          <select v-model="form.category" class="form-control" required>
-            <option value="breakfast">Breakfast</option>
-            <option value="lunch">Lunch</option>
-            <option value="shakes">Shakes</option>
+          <select v-model="form.category_id" class="form-control" required>
+            <option value="" disabled>Select Category</option>
+            <option v-for="category in categories" :key="category.id" :value="category.id">
+              {{ category.name }}
+            </option>
           </select>
         </div>
         <button
@@ -87,9 +88,9 @@
       <tbody>
         <tr v-for="item in menuItems" :key="item.id">
           <td>{{ item.name }}</td>
-          <td>Rp{{ item.price.toFixed(2) }}</td>
+          <td>Rp{{ parseFloat(item.price).toFixed(2) }}</td>
           <td>{{ item.description }}</td>
-          <td>{{ item.category }}</td>
+          <td>{{ item.category_name }}</td>
           <td>
             <button
               class="btn btn-warning btn-sm"
@@ -116,12 +117,13 @@ export default {
   data() {
     return {
       menuItems: [],
+      categories: [],
       form: {
         name: '',
         price: 0,
         description: '',
         image: '',
-        category: 'breakfast'
+        category_id: ''
       },
       editingItem: null
     };
@@ -133,6 +135,14 @@ export default {
         this.menuItems = response.data;
       } catch (error) {
         console.error('Error fetching menu:', error);
+      }
+    },
+    async fetchCategories() {
+      try {
+        const response = await this.$axios.get('/categories');
+        this.categories = response.data;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
       }
     },
     async addMenuItem() {
@@ -177,7 +187,7 @@ export default {
         price: 0,
         description: '',
         image: '',
-        category: 'breakfast'
+        category_id: ''
       };
       this.editingItem = null;
     },
@@ -194,6 +204,7 @@ export default {
   },
   mounted() {
     this.fetchMenu();
+    this.fetchCategories();
   }
 };
 </script>

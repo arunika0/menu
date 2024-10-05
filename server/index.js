@@ -12,7 +12,7 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Pastikan ini sesuai dengan frontend Anda
+  origin: 'https://menu.arxan.app', // Sesuaikan dengan domain frontend Anda
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
@@ -89,7 +89,11 @@ app.post('/api/login', async (req, res) => {
 // READ - Dapatkan semua menu items (Publik)
 app.get('/api/menu', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM menu_items');
+    const [rows] = await pool.query(`
+      SELECT mi.*, c.name as category_name
+      FROM menu_items mi
+      LEFT JOIN categories c ON mi.category_id = c.id
+    `);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching menu items:', error);
@@ -97,18 +101,23 @@ app.get('/api/menu', async (req, res) => {
   }
 });
 
-// GET - Dapatkan satu item menu berdasarkan ID
+// READ - Dapatkan satu menu item berdasarkan ID (Publik)
 app.get('/api/menu/:id', async (req, res) => {
   const id = parseInt(req.params.id);
 
   try {
-    const [rows] = await pool.query('SELECT * FROM menu_items WHERE id = ?', [id]);
+    const [rows] = await pool.query(`
+      SELECT mi.*, c.name as category_name
+      FROM menu_items mi
+      LEFT JOIN categories c ON mi.category_id = c.id
+      WHERE mi.id = ?
+    `, [id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Menu item not found' });
     }
 
-    res.json(rows[0]); // Mengirimkan item menu yang ditemukan
+    res.json(rows[0]);
   } catch (error) {
     console.error('Error fetching menu item:', error);
     res.status(500).send('Server Error');
@@ -117,19 +126,25 @@ app.get('/api/menu/:id', async (req, res) => {
 
 // CREATE - Tambah menu item baru (Autentikasi)
 app.post('/api/menu', authenticateToken, async (req, res) => {
-  const { name, price, description, image, category } = req.body;
+  const { name, price, description, image, category_id } = req.body;
 
   // Validasi sederhana
-  if (!name || !price || !category) {
-    return res.status(400).json({ message: 'Name, price, and category are required.' });
+  if (!name || !price || !category_id) {
+    return res.status(400).json({ message: 'Name, price, and category_id are required.' });
   }
 
   try {
+    // Periksa apakah category_id valid
+    const [catRows] = await pool.execute('SELECT * FROM categories WHERE id = ?', [category_id]);
+    if (catRows.length === 0) {
+      return res.status(400).json({ message: 'Invalid category_id.' });
+    }
+
     const [result] = await pool.query(
-      'INSERT INTO menu_items (name, price, description, image, category) VALUES (?, ?, ?, ?, ?)',
-      [name, price, description, image, category]
+      'INSERT INTO menu_items (name, price, description, image, category_id) VALUES (?, ?, ?, ?, ?)',
+      [name, price, description, image, category_id]
     );
-    const newItem = { id: result.insertId, name, price, description, image, category };
+    const newItem = { id: result.insertId, name, price, description, image, category_id };
     res.status(201).json(newItem);
   } catch (error) {
     console.error('Error adding menu item:', error);
@@ -140,24 +155,30 @@ app.post('/api/menu', authenticateToken, async (req, res) => {
 // UPDATE - Edit menu item berdasarkan ID (Autentikasi)
 app.put('/api/menu/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
-  const { name, price, description, image, category } = req.body;
+  const { name, price, description, image, category_id } = req.body;
 
   // Validasi sederhana
-  if (!name || !price || !category) {
-    return res.status(400).json({ message: 'Name, price, and category are required.' });
+  if (!name || !price || !category_id) {
+    return res.status(400).json({ message: 'Name, price, and category_id are required.' });
   }
 
   try {
+    // Periksa apakah category_id valid
+    const [catRows] = await pool.execute('SELECT * FROM categories WHERE id = ?', [category_id]);
+    if (catRows.length === 0) {
+      return res.status(400).json({ message: 'Invalid category_id.' });
+    }
+
     const [result] = await pool.query(
-      'UPDATE menu_items SET name = ?, price = ?, description = ?, image = ?, category = ? WHERE id = ?',
-      [name, price, description, image, category, id]
+      'UPDATE menu_items SET name = ?, price = ?, description = ?, image = ?, category_id = ? WHERE id = ?',
+      [name, price, description, image, category_id, id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Menu item not found' });
     }
 
-    const updatedItem = { id, name, price, description, image, category };
+    const updatedItem = { id, name, price, description, image, category_id };
     res.json(updatedItem);
   } catch (error) {
     console.error('Error updating menu item:', error);
@@ -183,7 +204,47 @@ app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// READ - Dapatkan semua kategori (Publik)
+app.get('/api/categories', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM categories');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
+// READ - Dapatkan kategori beserta menu-nya
+app.get('/api/categories/:id/menu', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    // Periksa apakah kategori ada
+    const [catRows] = await pool.execute('SELECT * FROM categories WHERE id = ?', [id]);
+    if (catRows.length === 0) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Ambil menu berdasarkan category_id
+    const [menuRows] = await pool.execute(`
+      SELECT mi.*, c.name as category_name
+      FROM menu_items mi
+      LEFT JOIN categories c ON mi.category_id = c.id
+      WHERE mi.category_id = ?
+    `, [id]);
+
+    res.json({
+      category: catRows[0],
+      menu: menuRows
+    });
+  } catch (error) {
+    console.error('Error fetching menu by category:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Mulai server
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server berjalan di http://localhost:${port}`);
 });
