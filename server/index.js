@@ -1,18 +1,18 @@
-// server/index.js
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: 'https://menu.arxan.app', // Sesuaikan dengan domain frontend Anda
+  origin: 'https://menu.arxan.app',
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
@@ -45,6 +45,22 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+// Konfigurasi `multer` untuk penyimpanan file gambar
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads')); // Folder penyimpanan gambar
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // Nama file unik
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Serve static files dari folder `uploads`
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rute Login
 app.post('/api/login', async (req, res) => {
@@ -242,6 +258,15 @@ app.get('/api/categories/:id/menu', async (req, res) => {
     console.error('Error fetching menu by category:', error);
     res.status(500).send('Server Error');
   }
+});
+
+// POST - Upload gambar menu (Autentikasi)
+app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+  const imageUrl = `https://${req.get('host')}/uploads/${req.file.filename}`;
+  res.status(201).json({ imageUrl });
 });
 
 // Mulai server
