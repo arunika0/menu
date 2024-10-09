@@ -6,13 +6,15 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const multer = require('multer');
+const fs = require('fs');
+const { body, validationResult } = require('express-validator');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: 'https://menu.arxan.app',
+  origin: 'https://menu.arxan.app', // Sesuaikan dengan domain frontend Anda
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
@@ -57,7 +59,20 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Maksimum 5MB
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only images are allowed'));
+  }
+});
 
 // Serve static files dari folder `uploads`
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -100,7 +115,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Endpoint CRUD
+// Endpoint CRUD Menu
 
 // READ - Dapatkan semua menu items (Publik)
 app.get('/api/menu', async (req, res) => {
@@ -207,6 +222,20 @@ app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
 
   try {
+    // Dapatkan data menu sebelum dihapus untuk menghapus gambar
+    const [rows] = await pool.query('SELECT image FROM menu_items WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Menu item not found' });
+    }
+    const imageUrl = rows[0].image;
+    const imagePath = path.join(__dirname, 'uploads', path.basename(imageUrl));
+
+    // Hapus file gambar jika ada
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    // Hapus data menu dari database
     const [result] = await pool.query('DELETE FROM menu_items WHERE id = ?', [id]);
 
     if (result.affectedRows === 0) {
@@ -220,6 +249,8 @@ app.delete('/api/menu/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Endpoint CRUD Categories
+
 // READ - Dapatkan semua kategori (Publik)
 app.get('/api/categories', async (req, res) => {
   try {
@@ -227,6 +258,111 @@ app.get('/api/categories', async (req, res) => {
     res.json(rows);
   } catch (error) {
     console.error('Error fetching categories:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
+// READ - Dapatkan satu kategori berdasarkan ID (Publik)
+app.get('/api/categories/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const [rows] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching category:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
+// CREATE - Tambah kategori baru (Autentikasi)
+app.post('/api/categories', [
+  authenticateToken,
+  body('name').notEmpty().withMessage('Name is required')
+], async (req, res) => {
+  // Cek hasil validasi
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { name } = req.body;
+
+  try {
+    // Cek apakah nama kategori sudah ada
+    const [existing] = await pool.query('SELECT * FROM categories WHERE name = ?', [name]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Category already exists.' });
+    }
+
+    const [result] = await pool.query('INSERT INTO categories (name) VALUES (?)', [name]);
+    const newCategory = { id: result.insertId, name };
+    res.status(201).json(newCategory);
+  } catch (error) {
+    console.error('Error adding category:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
+// UPDATE - Edit kategori berdasarkan ID (Autentikasi)
+app.put('/api/categories/:id', [
+  authenticateToken,
+  body('name').notEmpty().withMessage('Name is required')
+], async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { name } = req.body;
+
+  // Cek hasil validasi
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    // Cek apakah kategori ada
+    const [existingCategory] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
+    if (existingCategory.length === 0) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Cek apakah nama kategori sudah ada (kecuali untuk kategori yang sedang diupdate)
+    const [duplicate] = await pool.query('SELECT * FROM categories WHERE name = ? AND id != ?', [name, id]);
+    if (duplicate.length > 0) {
+      return res.status(400).json({ message: 'Another category with the same name already exists.' });
+    }
+
+    // Update kategori
+    await pool.query('UPDATE categories SET name = ? WHERE id = ?', [name, id]);
+    const updatedCategory = { id, name };
+    res.json(updatedCategory);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
+// DELETE - Hapus kategori berdasarkan ID (Autentikasi)
+app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    // Cek apakah kategori ada
+    const [existingCategory] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
+    if (existingCategory.length === 0) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Hapus kategori
+    await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
     res.status(500).send('Server Error');
   }
 });
