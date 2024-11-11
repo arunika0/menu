@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "concurrently \"nohup npm run dev:frontend &\" \"nohup npm run dev:backend &\"",
     "dev:frontend": "nuxt",
     "dev:backend": "nodemon server/index.js",
     "start:server": "nodemon server/index.js",

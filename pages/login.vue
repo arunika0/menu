@@ -1,5 +1,3 @@
-<!-- pages/login.vue -->
-
 <template>
   <div class="container mt-5">
     <h2 class="text-center mb-4">Login</h2>
@@ -53,19 +51,28 @@ export default {
   methods: {
     async login() {
       try {
-        const response = await this.$axios.post('/login', {
+        const response = await this.$axios.post('/api/login', {
           username: this.username,
           password: this.password
         });
 
+        const { token, role, restaurant_id } = response.data;
+
         // Simpan token di localStorage
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('token', token);
 
         // Atur token di Axios
-        this.$axios.setToken(response.data.token, 'Bearer');
+        this.$axios.setToken(token, 'Bearer');
 
-        // Redirect ke halaman admin
-        this.$router.push('/admin');
+        // Simpan data pengguna di Vuex Store
+        this.$store.dispatch('login', { token, role, restaurant_id });
+
+        // Redirect sesuai peran
+        if (role === 'super_admin') {
+          this.$router.push('/super-admin/dashboard');
+        } else if (role === 'restaurant_admin') {
+          this.$router.push('/admin');
+        }
       } catch (error) {
         console.error('Login error:', error);
         if (error.response && error.response.data && error.response.data.message) {
@@ -77,11 +84,18 @@ export default {
     }
   },
   mounted() {
-    // Jika sudah login, redirect ke admin
+    // Jika sudah login, redirect sesuai peran
     const token = localStorage.getItem('token');
-    if (token) {
+    const role = this.$store.state.user.role;
+    const restaurant_id = this.$store.state.user.restaurant_id;
+
+    if (token && role) {
       this.$axios.setToken(token, 'Bearer');
-      this.$router.push('/admin');
+      if (role === 'super_admin') {
+        this.$router.push('/super-admin/dashboard');
+      } else if (role === 'restaurant_admin') {
+        this.$router.push('/admin');
+      }
     }
   }
 };

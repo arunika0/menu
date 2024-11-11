@@ -1,27 +1,31 @@
 <template>
-  <div class="container mt-5">
-    <h2 class="text-center mb-4">Our Menu</h2>
+  <div class="container py-5">
+    <h2 class="text-center mb-4">Our Restaurants</h2>
 
-    <!-- Filter Buttons -->
-    <div class="text-center mb-4">
-      <button class="btn btn-outline-primary mr-2" :class="{ active: selectedCategory === 'all' }" @click="filterMenu('all')">All</button>
-      <button v-for="category in categories" :key="category.id" class="btn btn-outline-primary mr-2" :class="{ active: selectedCategory === category.id }" @click="filterMenu(category.id)">
-        {{ category.name }}
-      </button>
-    </div>
-
-    <!-- Menu Items -->
+    <!-- Daftar Restoran -->
     <div class="row">
-      <div v-for="item in filteredMenu" :key="item.id" class="col-md-6 mb-4">
-        <div class="card">
-          <img :src="item.image" class="card-img-top" :alt="item.name" />
-          <div class="card-body">
-            <h5 class="card-title">
-              {{ item.name }}
-              <span class="float-right">Rp{{ parseFloat(item.price).toFixed(2) }}</span>
+      <div
+        v-for="restaurant in restaurants"
+        :key="restaurant.id"
+        class="col-lg-4 col-md-6 mb-4"
+      >
+        <div class="card h-100 shadow-sm border-0 rounded-lg bg-white text-dark">
+          <img
+            :src="restaurant.image"
+            class="card-img-top img-fluid rounded-top"
+            :alt="restaurant.name"
+          />
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title text-primary font-weight-bold">
+              {{ restaurant.name }}
             </h5>
-            <p class="card-text">{{ item.description }}</p>
-            <p class="card-text"><small class="text-muted">Category: {{ item.category_name }}</small></p>
+            <p class="card-text">{{ restaurant.description }}</p>
+            <p class="card-text">
+              <small class="text-muted">Address: {{ restaurant.address }}</small>
+            </p>
+            <nuxt-link :to="`/restaurants/${restaurant.id}`" class="btn btn-primary mt-auto">
+              View Menu
+            </nuxt-link>
           </div>
         </div>
       </div>
@@ -33,59 +37,29 @@
 export default {
   data() {
     return {
-      menuItems: [],
-      filteredMenu: [],
-      categories: [],
-      selectedCategory: 'all'
+      restaurants: []
     };
   },
   methods: {
-    async fetchMenu() {
+    async fetchRestaurants() {
       try {
-        const response = await this.$axios.get('/menu');
-        this.menuItems = response.data;
-        this.filteredMenu = this.menuItems;
+        const response = await this.$axios.get('/api/restaurants');
+        this.restaurants = response.data;
       } catch (error) {
-        console.error('Error fetching menu:', error);
-      }
-    },
-    async fetchCategories() {
-      try {
-        const response = await this.$axios.get('/categories');
-        this.categories = response.data;
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    },
-    filterMenu(categoryId) {
-      this.selectedCategory = categoryId;
-      if (categoryId === 'all') {
-        this.filteredMenu = this.menuItems;
-      } else {
-        this.filteredMenu = this.menuItems.filter(item => item.category_id === categoryId);
+        console.error('Error fetching restaurants:', error);
+        // Tampilkan pesan error kepada pengguna jika diperlukan
       }
     }
   },
   mounted() {
-    this.fetchMenu();
-    this.fetchCategories();
+    this.fetchRestaurants();
   }
 };
 </script>
 
 <style scoped>
-.card {
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
 .card-img-top {
-  height: 300px;
+  height: 200px;
   object-fit: cover;
-}
-
-.btn.active {
-  background-color: #007bff;
-  color: white;
 }
 </style>
