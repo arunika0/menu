@@ -1,8 +1,12 @@
 // middleware/auth.js
 
 export default function ({ store, redirect, route }) {
-  const token = localStorage.getItem('token');
-  
+  let token = null;
+
+  if (process.client) {
+    token = localStorage.getItem('token');
+  }
+
   // Jika tidak ada token dan bukan halaman login, redirect ke login
   if (!token && route.name !== 'login') {
     return redirect('/login');

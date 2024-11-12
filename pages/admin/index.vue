@@ -35,6 +35,7 @@
   
   <script>
   export default {
+    middleware: 'auth',
     data() {
       return {
         totalMenuItems: 0,
@@ -73,4 +74,3 @@
     font-size: 2rem;
   }
   </style>
-  

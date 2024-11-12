@@ -42,6 +42,7 @@
   
   <script>
   export default {
+    middleware: 'auth',
     computed: {
       isAuthenticated() {
         return this.$store.getters.isAuthenticated;
@@ -82,4 +83,3 @@
     margin-left: 200px; /* Width of the sidebar */
   }
   </style>
-  
