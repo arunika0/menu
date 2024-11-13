@@ -55,7 +55,7 @@
         <tbody>
           <tr v-for="menu in menuItems" :key="menu.id">
             <td>{{ menu.name }}</td>
-            <td>{{ menu.price.toFixed(2) }}</td>
+            <td>{{ Number(menu.price).toFixed(2) }}</td>
             <td>{{ menu.description }}</td>
             <td>
               <img v-if="menu.image" :src="menu.image" alt="Menu Image" class="img-thumbnail" style="max-width: 100px;" />
@@ -110,7 +110,7 @@
         try {
           const formData = new FormData();
           formData.append('name', this.menuForm.name);
-          formData.append('price', this.menuForm.price);
+          formData.append('price', Number(this.menuForm.price));
           formData.append('description', this.menuForm.description);
           formData.append('category_id', this.menuForm.category_id);
           if (this.menuForm.image) {
@@ -140,7 +140,7 @@
         try {
           const formData = new FormData();
           formData.append('name', this.menuForm.name);
-          formData.append('price', this.menuForm.price);
+          formData.append('price', Number(this.menuForm.price));
           formData.append('description', this.menuForm.description);
           formData.append('category_id', this.menuForm.category_id);
           if (this.menuForm.image instanceof File) {

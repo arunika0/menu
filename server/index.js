@@ -52,7 +52,7 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Maksimum 5MB
   fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
+    const filetypes = /jpeg|jpg|png|webp|gif/;
     const mimetype = filetypes.test(file.mimetype);
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
 
@@ -691,9 +691,15 @@ router.delete('/menu/:id', authenticateToken(['super_admin', 'restaurant_admin']
 
     // Hapus file gambar jika ada
     if (image) {
-      const imagePath = path.join(__dirname, 'uploads', path.basename(image));
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+      const filename = path.basename(image);
+      const imagePath = path.join(__dirname, 'uploads', filename);
+
+      try {
+        await fs.promises.unlink(imagePath);
+        console.log('Image file deleted successfully');
+      } catch (err) {
+        console.error('Error deleting image file:', err);
+        // Lanjutkan tanpa menghentikan proses
       }
     }
 

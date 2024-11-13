@@ -11,6 +11,7 @@
             <b-nav-item to="/super-admin/dashboard">Home</b-nav-item>
             <b-nav-item to="/super-admin/restaurants">Manage Restaurants</b-nav-item>
             <b-nav-item to="/super-admin/admins">Manage Admins</b-nav-item>
+            <b-nav-item to="/super-admin/menus">Manage Menus</b-nav-item>
             <b-nav-item-dropdown text="Account" right>
               <b-dropdown-item @click="logout">Logout</b-dropdown-item>
             </b-nav-item-dropdown>
@@ -38,6 +39,11 @@
                 <li class="nav-item">
                   <nuxt-link to="/super-admin/admins" class="nav-link text-white">
                     Manage Admins
+                  </nuxt-link>
+                </li>
+                <li class="nav-item">
+                  <nuxt-link to="/super-admin/menus" class="nav-link">
+                    <i class="fas fa-utensils"></i> Manage Menus
                   </nuxt-link>
                 </li>
               </ul>

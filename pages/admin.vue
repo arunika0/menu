@@ -32,11 +32,6 @@
           </main>
         </div>
       </div>
-  
-      <!-- Footer -->
-      <footer class="text-center mt-5 mb-3">
-        <p>&copy; {{ new Date().getFullYear() }} Menu Arxan Admin. All rights reserved.</p>
-      </footer>
     </div>
   </template>
   

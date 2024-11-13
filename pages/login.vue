@@ -33,9 +33,38 @@
               {{ errorMessage }}
             </div>
           </form>
+          <div class="text-center mt-3">
+            <button @click="showRegisterModal = true" class="btn btn-outline-secondary">Register</button>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Modal for Google Form -->
+    <div class="modal" tabindex="-1" v-if="showRegisterModal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Register</h5>
+            <button type="button" class="btn-close" @click="showRegisterModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <iframe 
+              src="https://docs.google.com/forms/d/e/1FAIpQLSe6HhdjR9qRHBA5C8R9z6wkNeQ26qvWOZo9kg9KGTbcDUWZFQ/viewform?embedded=true"
+              width="100%" 
+              height="600" 
+              frameborder="0" 
+              marginheight="0" 
+              marginwidth="0"
+              allow="autoplay; encrypted-media; fullscreen">
+              Loading…
+            </iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal Backdrop -->
+    <div class="modal-backdrop fade show" v-if="showRegisterModal" @click="showRegisterModal = false"></div>
   </div>
 </template>
 
@@ -45,7 +74,8 @@ export default {
     return {
       username: '',
       password: '',
-      errorMessage: ''
+      errorMessage: '',
+      showRegisterModal: false
     };
   },
   methods: {
@@ -97,6 +127,22 @@ export default {
         this.$router.push('/admin');
       }
     }
+  },
+  beforeDestroy() {
+    // Remove modal classes from body when component is destroyed
+    if (this.showRegisterModal) {
+      document.body.classList.remove('modal-open');
+    }
+  },
+  watch: {
+    showRegisterModal(newValue) {
+      // Add or remove modal-open class from body
+      if (newValue) {
+        document.body.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+      }
+    }
   }
 };
 </script>
@@ -105,5 +151,24 @@ export default {
 .card {
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal styles */
+.modal {
+  display: block;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-dialog {
+  margin-top: 2rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 </style>
