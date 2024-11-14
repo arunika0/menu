@@ -1,17 +1,12 @@
 <template>
     <div>
       <!-- Super Admin Navbar -->
-      <b-navbar toggleable="lg" type="dark" variant="dark">
+      <b-navbar toggleable="lg" type="dark" variant="dark" fixed="top">
         <b-navbar-brand href="/super-admin/dashboard">Super Admin Dashboard</b-navbar-brand>
-  
         <b-navbar-toggle target="super-admin-nav-collapse"></b-navbar-toggle>
-  
         <b-collapse id="super-admin-nav-collapse" is-nav>
           <b-navbar-nav class="ml-auto">
             <b-nav-item to="/super-admin/dashboard">Home</b-nav-item>
-            <b-nav-item to="/super-admin/restaurants">Manage Restaurants</b-nav-item>
-            <b-nav-item to="/super-admin/admins">Manage Admins</b-nav-item>
-            <b-nav-item to="/super-admin/menus">Manage Menus</b-nav-item>
             <b-nav-item-dropdown text="Account" right>
               <b-dropdown-item @click="logout">Logout</b-dropdown-item>
             </b-nav-item-dropdown>
@@ -20,7 +15,7 @@
       </b-navbar>
   
       <!-- Sidebar and Content -->
-      <div class="container-fluid">
+      <div class="container-fluid mt-5 pt-2">
         <div class="row">
           <!-- Sidebar -->
           <nav class="col-md-2 d-none d-md-block bg-dark sidebar">

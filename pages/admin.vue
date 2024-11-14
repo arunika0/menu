@@ -1,7 +1,21 @@
 <template>
     <div>
+      <!-- Admin Navbar -->
+      <b-navbar toggleable="lg" type="dark" variant="primary" fixed="top">
+        <b-navbar-brand href="/admin">Admin Dashboard</b-navbar-brand>
+        <b-navbar-toggle target="admin-nav-collapse"></b-navbar-toggle>
+        <b-collapse id="admin-nav-collapse" is-nav>
+          <b-navbar-nav class="ml-auto">
+            <b-nav-item to="/admin">Home</b-nav-item>
+            <b-nav-item-dropdown text="Account" right>
+              <b-dropdown-item @click="logout">Logout</b-dropdown-item>
+            </b-nav-item-dropdown>
+          </b-navbar-nav>
+        </b-collapse>
+      </b-navbar>
+  
       <!-- Sidebar and Content -->
-      <div class="container-fluid">
+      <div class="container-fluid mt-5 pt-2">
         <div class="row">
           <!-- Sidebar -->
           <nav class="col-md-2 d-none d-md-block bg-light sidebar">
